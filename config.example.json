@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "name": "LYWSD02",
+  "mac": "",
+  "poll_interval": 600,
+  "sync_at": "02:00"
+}

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>温湿度 · 米家温湿度计</title>
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+<script src="/static/chart.umd.min.js" defer></script>
+<style>
+  :root{
+    --bg:#0e0f12; --card:#17181d; --card2:#1e2027; --line:#2a2c34;
+    --text:#e9eaee; --sub:#9a9daa; --dim:#6d7180;
+    --accent:#4f8cff; --warm:#ff9f43; --cool:#3ec7c2; --ok:#38c98a; --danger:#ff5c5c;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f4f5f8; --card:#fff; --card2:#f7f8fb; --line:#e3e5ec;
+      --text:#1b1d23; --sub:#5b6070; --dim:#8b90a0;
+      --shadow:0 8px 24px rgba(20,24,40,.08);
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:min(1440px, 96vw);margin:0 auto;padding:0 20px}
+  header{padding:22px 0 6px}
+  .topline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--sub);text-decoration:none;
+        font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+  .back:hover{color:var(--text);border-color:var(--dim)}
+  h1{font-size:20px;margin:0;font-weight:650;letter-spacing:.2px}
+  .pill{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--sub)}
+  .pill.on{color:var(--ok);border-color:rgba(56,201,138,.35);background:rgba(56,201,138,.08)}
+  .pill.off{color:var(--danger);border-color:rgba(255,92,92,.35);background:rgba(255,92,92,.08)}
+  main{padding:16px 0 48px}
+  .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px}
+  @media (max-width:960px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+  .card h2{font-size:13px;margin:0 0 12px;color:var(--sub);font-weight:600;letter-spacing:.4px}
+  .now{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end}
+  .big{font-size:56px;font-weight:700;line-height:1;letter-spacing:-1px}
+  .big small{font-size:22px;font-weight:600;color:var(--sub);margin-left:2px}
+  .unit-t{color:var(--warm)} .unit-h{color:var(--cool)}
+  .label{font-size:12px;color:var(--dim);margin-top:6px}
+  .meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .meta div{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .meta b{display:block;font-size:13px;font-weight:600}
+  .meta span{font-size:11.5px;color:var(--dim)}
+  .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  button{font:inherit;cursor:pointer;border-radius:11px;border:1px solid var(--line);
+         background:var(--card2);color:var(--text);padding:9px 14px;transition:.15s}
+  button:hover{border-color:var(--dim)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{filter:brightness(1.08)}
+  button:disabled{opacity:.55;cursor:default}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{border:0;border-radius:0;background:transparent;padding:6px 12px;font-size:12.5px;color:var(--sub)}
+  .seg button.on{background:var(--card2);color:var(--text)}
+  .chartbox{position:relative;height:320px;margin-top:6px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+  .stats div{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .stats span{display:block;font-size:11px;color:var(--dim)}
+  .stats b{font-size:15px;font-weight:600}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:0}
+  .row label{font-size:13px;color:var(--sub)}
+  input[type=text],input[type=number],input[type=time]{font:inherit;background:var(--card2);color:var(--text);
+      border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:132px;text-align:right}
+  input[type=time]{width:110px}
+  .switch{position:relative;width:46px;height:26px;flex:none}
+  .switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
+  .switch i{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:.2s}
+  .switch i::after{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;
+      background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .switch input:checked + i{background:var(--ok)}
+  .switch input:checked + i::after{transform:translateX(20px)}
+  .hint{font-size:11.5px;color:var(--dim);margin-top:10px;line-height:1.7}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#000c;color:#fff;
+     padding:10px 16px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:9}
+  .toast.show{opacity:1}
+  .err{color:var(--danger);font-size:12.5px;margin-top:8px;min-height:18px}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="topline">
+    <a class="back" href="/">← 控制页</a>
+    <h1>米家温湿度计</h1>
+    <span class="pill" id="statusPill">未采集</span>
+    <span class="pill" id="devPill">LYWSD02</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid">
+    <!-- 当前值 -->
+    <section class="card">
+      <h2>当前</h2>
+      <div class="now">
+        <div>
+          <div class="big unit-t" id="temp">--.-<small>°C</small></div>
+          <div class="label">温度</div>
+        </div>
+        <div>
+          <div class="big unit-h" id="hum">--<small>%</small></div>
+          <div class="label">湿度</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div><b id="updated">--</b><span>最后采集</span></div>
+        <div><b id="drift">--</b><span>设备时钟偏差</span></div>
+        <div><b id="lastSync">--</b><span>上次校时</span></div>
+        <div><b id="nextSync">--</b><span>下次校时</span></div>
+      </div>
+      <div class="btnrow">
+        <button class="primary" id="btnSample">立即采集</button>
+        <button id="btnSync">立即校时</button>
+      </div>
+      <div class="err" id="err"></div>
+      <div class="hint">设备每天 <b id="syncAtHint">02:00</b> 自动校时一次；采集间隔 <b id="pollHint">10</b> 分钟。
+        Mac 睡眠期间会跳过，唤醒后自动补一次。</div>
+    </section>
+
+    <!-- 曲线 -->
+    <section class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <h2 style="margin:0">趋势</h2>
+        <div class="seg" id="rangeSeg">
+          <button data-h="24" class="on">24 小时</button>
+          <button data-h="168">7 天</button>
+          <button data-h="720">30 天</button>
+        </div>
+      </div>
+      <div class="chartbox"><canvas id="chart"></canvas></div>
+      <div class="stats">
+        <div><span>温度最低 / 最高</span><b id="tRange">--</b></div>
+        <div><span>湿度最低 / 最高</span><b id="hRange">--</b></div>
+        <div><span>采样点</span><b id="nPts">0</b></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 设置 -->
+  <section class="card" style="margin-top:14px">
+    <h2>设备与调度</h2>
+    <div class="row">
+      <label>启用后台采集与校时</label>
+      <span class="switch"><input type="checkbox" id="cfgEnabled"><i></i></span>
+    </div>
+    <div class="row">
+      <label>设备广播名</label>
+      <input type="text" id="cfgName" placeholder="LYWSD02">
+    </div>
+    <div class="row">
+      <label>采集间隔（分钟）</label>
+      <input type="number" id="cfgPoll" min="1" max="360" step="1">
+    </div>
+    <div class="row">
+      <label>每天校时时间</label>
+      <input type="time" id="cfgSyncAt">
+    </div>
+    <div class="btnrow"><button class="primary" id="btnSave">保存设置</button></div>
+    <div class="hint">
+      温湿度计走 BLE 连接读取，不依赖小米云；数据只存在本机 <code>data/thermo.db</code>，只追加不覆盖。
+      连接期间如果米家 App 正连着这台设备，采集会失败并自动重试。
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let chart = null, rangeHours = 24, timer = null;
+
+const $ = id => document.getElementById(id);
+const toast = (msg) => {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2200);
+};
+const fmt = (ts) => ts ? new Date(ts * 1000).toLocaleString('zh-CN', {hour12:false}) : '--';
+const ago = (s) => {
+  if (s == null) return '--';
+  if (s < 60) return s + ' 秒前';
+  if (s < 3600) return Math.round(s / 60) + ' 分钟前';
+  if (s < 86400) return (s / 3600).toFixed(1) + ' 小时前';
+  return Math.round(s / 86400) + ' 天前';
+};
+
+async function loadStatus() {
+  const r = await fetch(API + '/api/thermo', {cache:'no-store'});
+  const d = await r.json();
+  const t = d.thermo;
+  $('statusPill').textContent = t.busy ? '通信中…' : (t.available ? '在线' : (t.error ? '异常' : '待采集'));
+  $('statusPill').className = 'pill ' + (t.available && !t.error ? 'on' : (t.error ? 'off' : ''));
+  $('devPill').textContent = t.name + (t.mac ? ' · ' + t.mac : '');
+  $('temp').innerHTML = (t.temp == null ? '--.-' : t.temp.toFixed(1)) + '<small>°C</small>';
+  $('hum').innerHTML = (t.hum == null ? '--' : t.hum) + '<small>%</small>';
+  $('updated').textContent = t.sample_ts ? ago(t.age_sec) : '--';
+  $('drift').textContent = t.drift_sec == null ? '--' : (t.drift_sec > 0 ? '+' : '') + t.drift_sec + ' 秒';
+  $('lastSync').textContent = t.last_sync_ts ? fmt(t.last_sync_ts) + (t.last_sync_ok ? '' : '（失败）') : '尚未校时';
+  $('nextSync').textContent = fmt(t.sync_due_ts);
+  $('err').textContent = t.error || t.last_sync_error || '';
+  $('cfgEnabled').checked = !!t.enabled;
+  $('cfgName').value = t.name || '';
+  $('cfgPoll').value = Math.round((t.poll_interval || 600) / 60);
+  $('cfgSyncAt').value = t.sync_at || '02:00';
+  $('syncAtHint').textContent = t.sync_at || '02:00';
+  $('pollHint').textContent = Math.round((t.poll_interval || 600) / 60);
+  if (d.stats24h) {
+    $('tRange').textContent = d.stats24h.temp_min + ' / ' + d.stats24h.temp_max + ' °C';
+    $('hRange').textContent = d.stats24h.hum_min + ' / ' + d.stats24h.hum_max + ' %';
+  }
+}
+
+async function loadSeries() {
+  const r = await fetch(`${API}/api/thermo/series?hours=${rangeHours}`, {cache:'no-store'});
+  const d = await r.json();
+  const pts = d.points || [];
+  $('nPts').textContent = pts.length;
+  const labels = pts.map(p => new Date(p.ts * 1000).toLocaleString('zh-CN',
+      rangeHours > 48 ? {month:'2-digit', day:'2-digit', hour:'2-digit'} : {hour:'2-digit', minute:'2-digit'}));
+  const temps = pts.map(p => p.temp), hums = pts.map(p => p.hum);
+  const ctx = $('chart');
+  if (!chart) {
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: {labels, datasets: [
+        {label:'温度 °C', data: temps, borderColor:'#ff9f43', backgroundColor:'rgba(255,159,67,.12)',
+         borderWidth:2, pointRadius:0, tension:.32, yAxisID:'y', fill:true},
+        {label:'湿度 %', data: hums, borderColor:'#3ec7c2', backgroundColor:'rgba(62,199,194,.10)',
+         borderWidth:2, pointRadius:0, tension:.32, yAxisID:'y1', fill:true}
+      ]},
+      options: {
+        responsive:true, maintainAspectRatio:false, interaction:{mode:'index', intersect:false},
+        plugins:{legend:{labels:{color:getComputedStyle(document.body).color, boxWidth:10, boxHeight:10}}},
+        scales:{
+          x:{ticks:{color:'#8b90a0', maxTicksLimit:8, autoSkip:true}, grid:{color:'rgba(140,145,160,.12)'}},
+          y:{position:'left', ticks:{color:'#ff9f43'}, grid:{color:'rgba(140,145,160,.10)'}},
+          y1:{position:'right', ticks:{color:'#3ec7c2'}, grid:{display:false}, suggestedMin:0, suggestedMax:100}
+        }
+      }
+    });
+  } else {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = temps;
+    chart.data.datasets[1].data = hums;
+    chart.update('none');
+  }
+}
+
+async function act(url, okMsg) {
+  const btnIds = ['btnSample','btnSync'];
+  btnIds.forEach(b => $(b).disabled = true);
+  try {
+    const r = await fetch(API + url, {method:'POST'});
+    const d = await r.json().catch(() => ({}));
+    if (d.ok) { toast(okMsg); } else { toast('失败：' + (d.error || ('HTTP ' + r.status))); }
+  } catch (e) { toast('失败：' + e.message); }
+  finally { btnIds.forEach(b => $(b).disabled = false); await refresh(); }
+}
+
+async function refresh() {
+  try { await loadStatus(); await loadSeries(); } catch (e) { /* 静默，下次轮询再试 */ }
+}
+
+$('btnSample').onclick = () => act('/api/thermo/sample', '已采集一次');
+$('btnSync').onclick = () => act('/api/thermo/sync', '校时完成');
+$('btnSave').onclick = async () => {
+  const body = {
+    enabled: $('cfgEnabled').checked,
+    name: $('cfgName').value.trim() || 'LYWSD02',
+    poll_interval: Math.max(60, (parseInt($('cfgPoll').value, 10) || 10) * 60),
+    sync_at: $('cfgSyncAt').value || '02:00'
+  };
+  const r = await fetch(API + '/api/thermo/config', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const d = await r.json();
+  if (d.ok) { toast('设置已保存'); refresh(); } else { toast('保存失败：' + (d.error || r.status)); }
+};
+document.querySelectorAll('#rangeSeg button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#rangeSeg button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); rangeHours = parseInt(b.dataset.h, 10); loadSeries();
+});
+
+refresh();
+timer = setInterval(refresh, 30000);
+</script>
+</body>
+</html>
