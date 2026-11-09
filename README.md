@@ -4,6 +4,20 @@
 
 不需要小米账号、不需要 bindkey、不需要刷固件。
 
+
+## 直接下载就能用（推荐）
+
+不用命令行，**下载解压 → 双击 → 浏览器自动打开**。
+
+1. 打开 [Releases](https://github.com/shidaifufen/lywsd02-thermo/releases) 或点绿色 `Code` → `Download ZIP`
+2. 解压到任意文件夹
+3. 双击：
+   - Windows：`启动（Windows）.bat`
+   - macOS：`启动（macOS）.command`（首次可能要右键 → 打开）
+4. 浏览器自动打开 `http://127.0.0.1:8199/`
+
+首次运行会自动建环境装依赖（需联网，约 1 分钟）。找不到 Python 时脚本会打开下载页，**安装时勾选 "Add Python to PATH"**。
+
 ## 功能
 
 - **定时采集**：BLE 连接 `EBE0CCC1` 订阅 3 字节读数，连 2~3 秒就断开，默认每 10 分钟一次
